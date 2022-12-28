@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html>
+  <body onload="load()">
+    <!-- blockly节点 -->
+    <div id="blocklyDiv"></div>
+    <!-- debug测试节点 -->
+    <!-- <div class="debug-wrapper">
+      <input class="gen-lua" type="button" value="genLua"  onclick="genLuaCode()"></input>
+      <input class="gen-lua" type="button" value="vbot_save_project"  onclick="vbot_save_project()"></input>
+      <input class="gen-lua" type="button" value="vbot_new_project"  onclick="vbot_new_project()"></input>
+    </div> -->
+    <!-- 展示代码按钮 -->
+    <div class="block-code-btn" onclick="showCodeDrawer()" type="button">
+      <img src="./static/code.svg" alt="" style="max-height: 25px; padding: 2px 0;">
+    </div>
+    <!-- 代码展示drawer -->
+    <div class="code-drawer" id="code_modal">
+      <div class="code-drawer-close" onclick="closeCodeDrawer()" type="button">
+        <img src="./static/close.svg" >
+      </div>
+      <div class="code-drawer-content" id="code-drawer-content">
+        <pre id="code-pre">
+            <code id="code-node" class="hljs">
+             
+            </code>
+        </pre>
+      </div>
+    </div>
+    <!-- 添加自定义变量弹框 -->
+    <div id="var_model" class="var-modal">
+        <div class="modal-var-content">
+            <div class="modal-header">
+                <span class="close" id="var_closebtn">&times;</span>
+                <h3>添加变量</h3>
+            </div>
+            <div class="modal-body">
+                <input type="text" name="var_name" id="var_name_input" class="model-input" placeholder="请输入变量名称"/>
+                <div style="margin-top: 30px">
+                    <button type="button" onclick="sureAddVariable()" class="model-button model-sure-btn">确定</button>
+                    <button  type="button" onclick="Blockly.hiddenNewVariable()" class="model-button model-cancle-btn">取消</button>
+                </div>
+              </div>
+        </div>
+    </div>
+    <!-- 添加自定义模块 -->
+    <div id="block_model" class="block-modal">
+      <div class="modal-block-content">
+        <div class="modal-header">
+            <span class="close" id="block_closebtn">&times;</span>
+            <h3>添加积木</h3>
+        </div>
+        <div class="modal-body">
+           <div class="modal-block-workspace" id="editor-block-workspace">
+           </div>
+           <div class="modal-block-btns">
+              <div class="modal-block-btn" onclick="addblock(0)">
+                <img class="block-btn-img" src="./static/icon--text-input.svg" alt="">
+                <div class="block-btn-l1">
+                  添加输入项目
+                </div>
+                <div class="block-btn-l2">
+                  数字或文字
+                </div>
+                  
+              </div>
+              <div class="modal-block-btn" onclick="addblock(1)">
+                <img class="block-btn-img" src="./static/icon--boolean-input.svg" alt="">
+                <div class="block-btn-l1">
+                  添加输入项目
+                </div>
+                <div class="block-btn-l2">
+                  布尔值
+                </div>
+              </div>
+              <div class="modal-block-btn" onclick="addblock(2)">
+                <img class="block-btn-img" src="./static/icon--label.svg" alt="">
+                <div class="block-btn-l1">
+                  添加输入项目
+                </div>
+                <div class="block-btn-l2">
+                  添加文本标签
+                </div>
+              </div>
+           </div>
+            <div style="margin-top: 30px">
+                <button type="button" onclick="sureAddBlock()" class="model-button model-sure-btn">完成</button>
+                <button  type="button" onclick="hiddenAddBlock()" class="model-button model-cancle-btn">取消</button>
+            </div>
+          </div>
+      </div>
+    </div>
+    <!-- 提示弹框节点 -->
+    <div class="block-toast" id="block-toast">
+    </div>
+  </body>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <title>代码生成器</title>
+    <!-- highlight相关使用 -->
+    <link rel="stylesheet" href="./static/monokai.min.css">
+    <script src="./static/highlight.min.js"></script>
+    <script src="./static/line-number.js"></script>
+    <script src="./static/lua.min.js"></script>
+
+    <!-- pako解压缩库 -->
+    <script src="./static/pako.min.js"></script>
+    <!-- npm run prepulish 生成的blockly -->
+    <script src="./blockly_compressed_vertical.js"></script>
+    <!-- 默认的一些blockly库 -->
+    <script src="./static/messages.js"></script>
+    <script src="./static/scratch_msgs.js"></script>
+    <script src="./static/vertical/vertical_extensions.js"></script>
+    <script src="./static/common/math.js"></script>
+    <script src="./static/common/text.js"></script>
+    <script src="./static/vertical/procedures.js"></script>
+    <!-- 自定义的一些模块 -->
+    <script src="./selfblocks/controls.js"></script>
+    <script src="./selfblocks/events.js"></script>
+    <script src="./selfblocks/motion.js"></script>
+    <script src="./selfblocks/sensing.js"></script>
+    <script src="./selfblocks/operator.js"></script>
+    <script src="./selfblocks/data.js"></script>
+    <script src="./tool-box-xml.js"></script>
+    <script src="./setting.js"></script>
+    <script src='./stringUtils.js'>
+    </script>
+    <!-- lua代码生成解析库 -->
+    <script src="./lua/lua.js"></script>
+    <script src="./lua/other/text.js"></script>
+    <script src="./lua/other/math.js"></script>
+    <script src="./lua/other/procedures.js"></script>
+    <script src="./lua/other/motion.js"></script>
+    <script src="./lua/other/controls.js"></script>
+    <script src="./lua/other/events.js"></script>
+    <script src="./lua/other/sensing.js"></script>
+    <script src="./lua/other/operator.js"></script>
+    <script src="./lua/other/variables.js"></script>
+    <script>
+      'use strict';
+      var NowSavePro = true//当前pro是否保存
+      var workspace = null;
+      var codeNode = null;
+      var codePre = document.getElementById("code-pre")
+      
+      function load() {
+  
+        var match = location.search.match(/dir=([^&]+)/);
+        var rtl = match && match[1] == 'rtl';
+        var toolbox = getToolboxElement();
+        match = location.search.match(/side=([^&]+)/);
+        var side = match ? match[1] : 'start';
+        match = location.search.match(/locale=([^&]+)/);
+        var locale = match ? match[1] : 'zh-cn';
+        Blockly.ScratchMsgs.setLocale(locale);
+        workspace = Blockly.inject('blocklyDiv', {
+          comments: true,
+          disable: false,
+          collapse: false,
+          media: './media/',
+          readOnly: false,
+          rtl: rtl,
+          scrollbars: true,
+          toolbox: ToolBoxXml,
+          toolboxPosition: side == 'top' || side == 'start' ? 'start' : 'end',
+          horizontalLayout: side == 'top' || side == 'bottom',
+          sounds: false,
+          zoom: {
+            controls: true,
+            wheel: true,
+            startScale: 0.675,
+            maxScale: 4,
+            minScale: 0.25,
+            scaleSpeed: 1.1
+          },
+          colours: {
+            fieldShadow: 'rgba(255, 255, 255, 0.3)',
+            dragShadowOpacity: 0.6
+          }
+        });
+        //监听workspace的变化
+        workspace.addChangeListener((e)=>{
+          if ((e.type == "move" || e.type == "ui") && code_modal.style.display == "block"){
+            genLuaCode()
+          }
+          NowSavePro = false
+        });
+        //创建初始变量
+        workspace.createVariable("我的变量","",null,true,false)
+      }
+      //创建代码节点
+      function createCodeNode(code){
+        codeNode = document.getElementById("code-node");
+        if (codeNode != null) {
+          codeNode.remove()
+        }
+        codeNode = document.createElement("code");
+        codeNode.id = "code-node";
+        codeNode.className = "hljs"
+        codeNode.appendChild(document.createTextNode(code))
+        codePre.appendChild(codeNode)
+      }
+      //获取侧边栏中所有模块元素
+      function getToolboxElement() {
+        var match = location.search.match(/toolbox=([^&]+)/);
+        return document.getElementById('toolbox-' + (match ? match[1] : 'categories'));
+      }
+      //设置本地化参数
+      function setLocale(locale) {
+        workspace.getFlyout().setRecyclingEnabled(false);
+        var xml = Blockly.Xml.workspaceToDom(workspace);
+        Blockly.ScratchMsgs.setLocale(locale);
+        Blockly.Xml.clearWorkspaceAndLoadFromXml(xml, workspace);
+        workspace.getFlyout().setRecyclingEnabled(true);
+      }
+      //生成lua code
+      function genLuaCode(){
+        let code = Blockly.Lua.genCode(workspace)
+        createCodeNode(code)
+        hljs.highlightAll();
+        hljs.initLineNumbersOnLoad();
+      }
+      //生成xml字符串
+      function exportXml(){
+        let xml = Blockly.Xml.workspaceToDom(workspace);
+        let content = Blockly.Xml.domToPrettyText(xml)
+        return content;
+      }
+      //导入xml字符串并生成代码
+      function importXml(value){
+        let xml = Blockly.Xml.textToDom(value);
+        Blockly.Xml.clearWorkspaceAndLoadFromXml(xml, workspace);
+        workspace.refreshToolboxSelection_()
+        genLuaCode()
+      }
+    
+      //变量弹框关闭按钮
+      let var_close_btn = document.getElementById("var_closebtn");
+      //变量弹框model
+      let var_modal = document.getElementById('var_model');
+      //变量名称输入input
+      let var_name_input = document.getElementById("var_name_input")
+
+      //模块弹框model
+      let block_model = document.getElementById('block_model');
+      //模块弹框关闭按钮
+      let block_closebtn = document.getElementById("block_closebtn")
+      //code drawer 的model
+      let code_modal = document.getElementById('code_modal');
+
+      block_closebtn.onclick = function(){
+        hiddenAddBlock()
+      }
+
+      //确定添加变量
+      function sureAddVariable(){
+        console.log(var_name_input.value);
+        let value = var_name_input.value
+        if (value == null || value == '') {
+          window.alert("输入的参数有误");
+          return
+        }
+        if (value.length > 30) {
+          window.alert("变量长度过长！");
+          return
+        }
+        if (Blockly.addNewVariable != null) {
+          Blockly.addNewVariable(value)
+        }
+        Blockly.hiddenNewVariable()
+      }
+      //关闭变量弹框
+      Blockly.hiddenNewVariable = function(){
+        var_name_input.value = null
+        var_modal.style.display = "none";
+      }
+      //展示变量弹框
+      Blockly.showAddNewVariable = function(){
+        var_modal.style.display = "block";
+      }
+      var_close_btn.onclick = Blockly.hiddenNewVariable
+
+      let blockToast = document.getElementById("block-toast");
+      let blockNowChild = null
+      let toastTimer = null
+
+      //展示警告弹框
+      function showtoast(content,state){
+        blockToast.style.display = "block";
+        if (blockNowChild != null) {
+          blockToast.removeChild(blockNowChild)
+          blockNowChild = null
+        }
+        if (toastTimer != null) {
+          clearTimeout(toastTimer)
+          toastTimer = null
+        }
+        let node = document.createElement("lable")
+        let color = "#eee"
+        if (state == "success") {
+          color = "	#7FFF00"
+        }else if(state = "error"){
+          color = "#FF0000"
+        }
+        node.style = `font-size: 20px;color: ${color};margin: 15px 20px;display: inline-block;white-space: nowrap;`
+        blockToast.appendChild(node)
+        blockNowChild = node
+        blockNowChild.appendChild(document.createTextNode(content))
+        toastTimer = setTimeout(() => {
+          blockToast.style.display = "none";
+        }, 3000);
+      }
+
+      //展示code  drawer
+      function showCodeDrawer(){
+        genLuaCode()
+        code_modal.style.display = "block";
+      }
+      //关闭code drawer
+      function closeCodeDrawer(){
+        code_modal.style.display = "none";
+      }
+
+    </script>
+    <!-- 编辑blockjs -->
+    <script src="./editor-block.js"></script>
+    <!-- 全局调用参数 -->
+    <script src="./reigister_fun.js"></script>
+    <style>
+      html, body {
+        height: 100%;
+      }
+
+      body {
+        background-color: #fff;
+        font-family: sans-serif;
+        overflow: hidden;
+        margin: 0px;
+      }
+
+      h1 {
+        font-weight: normal;
+        font-size: 140%;
+      }
+
+      #blocklyDiv {
+        float: right;
+        height: 100%;
+        width: 100%;
+      }
+
+      #collaborators {
+        float: right;
+        width: 30px;
+        margin-left: 10px;
+      }
+
+      #collaborators > img {
+        margin-right: 5px;
+        height: 30px;
+        padding-bottom: 5px;
+        width: 30px;
+        border-radius: 3px;
+      }
+
+      #importExport {
+        font-family: monospace;
+      }
+      
+
+
+      .var-modal {
+          display: none; /* 默认隐藏 */
+          position: fixed; 
+          overflow: hidden;
+          z-index: 1000; 
+          left: 0;
+          top: 0;
+          width: 100%; 
+          height: 100%; 
+          background-color: rgb(0,0,0); 
+          background-color: rgba(0,0,0,0.4); 
+          -webkit-animation-name: fadeIn; 
+          -webkit-animation-duration: 0.4s;
+          animation-name: fadeIn;
+          animation-duration: 0.4s
+      }
+
+      .block-modal {
+          display: none; /* 默认隐藏 */
+          position: fixed; 
+          overflow: hidden;
+          z-index: 1000; 
+          left: 0;
+          top: 0;
+          width: 100%; 
+          height: 100%; 
+          background-color: rgb(0,0,0); 
+          background-color: rgba(0,0,0,0.4); 
+          -webkit-animation-name: fadeIn; 
+          -webkit-animation-duration: 0.4s;
+          animation-name: fadeIn;
+          animation-duration: 0.4s
+      }
+
+      /* 弹窗内容 */
+      .modal-var-content {
+          position: absolute;
+          top: 60px;
+          left: calc(50% - 250px);
+          background-color: #fefefe;
+          width: 400px;
+          height: 260px;
+          border-radius: 10px;
+          -webkit-animation-name: slideIn;
+          -webkit-animation-duration: 0.4s;
+          animation-name: slideIn;
+          animation-duration: 0.4s
+      }
+
+      .modal-block-content {
+          position: absolute;
+          top: 60px;
+          left: calc(50% - 400px);
+          background-color: #fefefe;
+          width: 700px;
+          height: 500px;
+          border-radius: 10px;
+          -webkit-animation-name: slideIn;
+          -webkit-animation-duration: 0.4s;
+          animation-name: slideIn;
+          animation-duration: 0.4s
+      }
+
+      /* 关闭按钮 */
+      .close {
+          color: white;
+          float: right;
+          font-size: 35px;
+          font-weight: bold;
+      }
+
+      .close:hover,
+      .close:focus {
+          color: #000;
+          text-decoration: none;
+          cursor: pointer;
+      }
+
+      .modal-header {
+          padding: 2px 16px;
+          background-color: #00b3ff;
+          color: white;
+          text-align: center;
+          border-top-left-radius: 10px;
+          border-top-right-radius: 10px;
+      }
+
+      .modal-body {
+          padding: 2px 16px;
+          text-align: center;
+      }
+
+      .modal-footer {
+          padding: 2px 16px;
+          background-color: #5cb85c;
+          color: white;
+      }
+
+      /* 添加动画 */
+      @-webkit-keyframes showtoast {
+          from {top: -200px; opacity: 0.5} 
+          to {top: 30; opacity: 1}
+      }
+
+      @keyframes showtoast {
+          from {top: -200px; opacity: 0.5}
+          to {top: 30; opacity: 1}
+      }
+
+      .block-toast{
+        display: none;
+        margin: auto;
+        position: absolute;
+        text-align: center;
+        top: 30px;
+        left: calc(50% - 200px);
+        min-width: 200px;
+        height: 60px;
+        border-radius: 30px;
+        background-color: rgb(255, 255, 255);
+        z-index: 2000;
+        -webkit-animation-name: showtoast;
+        -webkit-animation-duration: 0.2s;
+        animation-name: showtoast;
+        animation-duration: 0.2s
+      }
+
+      .code-drawer{
+        display: none;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 500px;
+        height: 100%;
+        background-color: #fff;
+      }
+      .code-drawer-header{
+        height: 35px;
+        color: #273ff6;
+        line-height: 2.2;
+        text-align: center;
+        /* border-bottom: 1px solid #bbb; */
+      }
+
+      /* 添加动画 */
+      @-webkit-keyframes slideIn {
+          from {bottom: -300px; opacity: 0} 
+          to {bottom: 0; opacity: 1}
+      }
+
+      @keyframes slideIn {
+          from {bottom: -300px; opacity: 0}
+          to {bottom: 0; opacity: 1}
+      }
+
+      @-webkit-keyframes fadeIn {
+          from {opacity: 0} 
+          to {opacity: 1}
+      }
+
+      @keyframes fadeIn {
+          from {opacity: 0} 
+          to {opacity: 1}
+      }
+      .model-input{
+        height: 50px;
+        padding: 5px;
+        border-radius: 10px;
+        font-size: 20px;
+        margin: 10px 0;
+        border: #ccc 1px solid;
+        outline: none;
+      }
+      .model-input:focus{
+        border: #00b3ff 1px solid;
+      }
+      .model-button{
+        height: 50px;
+        width: 150px;
+        font-size: 20px;
+        border-radius: 20px;
+        border: 1px solid #ccc;
+      }
+      .model-button:hover{
+        background-color: #00b3ff;
+        color: white;
+        border: 1px solid #FFD700;
+      }
+      .model-sure-btn{
+        background-color: #5cb85c;
+        color: white;
+      }
+      .modal-block-workspace{
+        min-height: 200px;
+        position: relative;
+      }
+      .modal-block-workspace .injectionDiv{
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+      .modal-block-workspace .blocklySvg{
+        background-color: hsla(215, 100%, 95%, 1);
+      }
+      .modal-block-btns{
+        display: flex;
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+      .code-drawer-close{
+        position: absolute;
+        left: -40px;
+        top: 20px;
+        width: 40px;
+        height: 30px;
+        border-top-left-radius: 20px;
+        border-bottom-left-radius: 20px;
+        background-color: #00b3ff;
+        cursor: pointer;
+      }
+      .code-drawer-close img{
+        height:25px;
+        margin-left: 10px;
+        margin-top: 2px;
+      }
+      .modal-block-btn{
+        height: 6rem;
+        width: 10rem;
+        margin:10px 15px;
+        border: 2px #ccc solid;
+        border-radius: 20px;
+        text-align: center;
+        padding: 10px 0px;
+      }
+      .modal-block-btn:hover{
+        border: 2px #00b3ff solid;
+        cursor: pointer;
+      }
+      .modal-block-workspace-inner{
+        width: 1000px;
+        height: 800px;
+      }
+      .block-btn-img{
+        max-height: 48px;
+      }
+      .block-btn-l1{
+        font-weight: bold;
+        color: black;
+        font-size: 20px;
+      }
+      .block-btn-l2{
+        color: gray;
+        font-size: 16px;
+      }
+      .debug-wrapper{
+        height: 60px;
+        position: absolute;
+        top: 50px;
+        right: 0px;
+      }
+
+      .block-code-btn{
+        position: absolute;
+        top: 10px;
+        right: 0px;
+        background-color: #00b3ff;
+        height: 30px;
+        width: 40px;
+        border-top-left-radius: 20px;
+        border-bottom-left-radius: 20px;
+        text-align: center;
+        cursor: pointer;
+      }
+      #code-pre{
+        margin: 0 0;
+        height: 100%;
+      }
+      #code-node{
+        top: -30px;
+        position: relative;
+        overflow-y: auto;
+        height: calc(100% - 30px);
+      }
+      .code-drawer-content{
+        height: 100%;
+      }
+      ::-webkit-scrollbar {
+
+        width: 15px;
+        height: 8px;
+        } 
+      ::-webkit-scrollbar-track {
+
+        background-color: #fff;
+
+        } /* 滚动条的滑轨背景颜色 */
+
+        ::-webkit-scrollbar-thumb {
+
+        background-color: rgba(0, 0, 0, 0.2); 
+
+        } /* 滑块颜色 */
+
+        ::-webkit-scrollbar-button {
+
+        background-color: #fdfdfd;
+
+        } /* 滑轨两头的监听按钮颜色 */
+
+        ::-webkit-scrollbar-corner {
+
+        background-color: black;
+
+        } /* 横向滚动条和纵向滚动条相交处尖角的颜色 */
+    </style>
+  </head>
+</html>
